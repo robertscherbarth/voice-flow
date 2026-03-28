@@ -1,4 +1,4 @@
 .env
 .DS_Store
 agent/voice-agent
-SwiftApp/VoiceAgent.app/
+packages/desktop/VoiceAgent.app/
