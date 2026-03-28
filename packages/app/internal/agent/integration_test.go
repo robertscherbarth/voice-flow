@@ -35,7 +35,7 @@ func TestIntegration_ProcessAudio(t *testing.T) {
 	handler := agent.NewHandler(mistralClient, mistralClient, cfg)
 
 	// Read the real M4A file
-	audioPath := filepath.Join("..", "..", "..", "scripts", "test-sentence.m4a")
+	audioPath := filepath.Join("..", "..", "..", "test data", "test-sentence.m4a")
 	audioData, err := os.ReadFile(audioPath)
 	if err != nil {
 		t.Fatalf("Failed to read test audio file at %s: %v", audioPath, err)
