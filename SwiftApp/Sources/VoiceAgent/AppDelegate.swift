@@ -16,6 +16,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         updateIcon("⚪️") // Idle
         setupMenu()
         
+        if #available(macOS 14.0, *) {
+            FloatingIndicatorManager.shared.show()
+            FloatingIndicatorManager.shared.updateState(.idle)
+        }
+        
         agentManager.start()
         
         hotkeyManager.onRecordingStart = { [weak self] in
@@ -56,13 +61,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func startRecordingFlow() {
         updateIcon("🔴") // Recording
+        if #available(macOS 14.0, *) {
+            FloatingIndicatorManager.shared.updateState(.recording)
+        }
         audioRecorder.startRecording()
     }
     
     func stopRecordingFlow() {
         updateIcon("⏳") // Processing
+        if #available(macOS 14.0, *) {
+            FloatingIndicatorManager.shared.updateState(.waiting)
+        }
         guard let url = audioRecorder.stopRecording() else {
             updateIcon("⚪️")
+            if #available(macOS 14.0, *) {
+                FloatingIndicatorManager.shared.updateState(.idle)
+            }
             return
         }
         
@@ -71,6 +85,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.updateIcon("⚪️") // Back to idle
+                if #available(macOS 14.0, *) {
+                    FloatingIndicatorManager.shared.updateState(.idle)
+                }
                 switch result {
                 case .success(let text):
                     print("Received text: \(text)")
