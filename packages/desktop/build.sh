@@ -18,6 +18,9 @@ echo "Building $APP_NAME..."
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
+# Copy App Icon
+cp AppIcon.icns "$RESOURCES_DIR/"
+
 # Copy Go agent
 cp ../app/voice-agent "$RESOURCES_DIR/"
 
@@ -35,6 +38,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
 <dict>
     <key>CFBundleExecutable</key>
     <string>$APP_NAME</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.example.VoiceAgent</string>
     <key>CFBundleName</key>
