@@ -1,4 +1,5 @@
 import Cocoa
+import ApplicationServices
 
 class ClipboardManager {
     static func paste(text: String) {
@@ -6,25 +7,34 @@ class ClipboardManager {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         
-        // Give the pasteboard a tiny moment to register the change
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            simulateCmdV()
+        // Wait for the pasteboard to sync and the target app to be ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if AXIsProcessTrusted() {
+                simulateCmdV()
+            } else {
+                print("Cannot paste: Accessibility permission not granted.")
+                // Request again just in case
+                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                AXIsProcessTrustedWithOptions(options)
+            }
         }
     }
     
     static private func simulateCmdV() {
         let src = CGEventSource(stateID: .hidSystemState)
         
-        // 9 is the virtual key code for 'v'
-        let cmdVDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
-        let cmdVUp = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+        let vDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
+        let vUp = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
         
-        let flags = CGEventFlags.maskCommand
-        cmdVDown?.flags = flags
-        cmdVUp?.flags = flags
+        // Apply the Command modifier flag
+        vDown?.flags = .maskCommand
+        vUp?.flags = .maskCommand
         
+        // Post the events
         let loc = CGEventTapLocation.cghidEventTap
-        cmdVDown?.post(tap: loc)
-        cmdVUp?.post(tap: loc)
+        vDown?.post(tap: loc)
+        vUp?.post(tap: loc)
+        
+        print("Pasted via CGEvent")
     }
 }

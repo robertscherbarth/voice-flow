@@ -38,6 +38,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Microphone access denied!")
             }
         }
+        
+        checkAccessibilityPermissions()
+    }
+    
+    func checkAccessibilityPermissions() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        if !trusted {
+            print("Accessibility permission not granted. Please enable it in System Settings.")
+        } else {
+            print("Accessibility permission granted.")
+        }
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
