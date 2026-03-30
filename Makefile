@@ -1,44 +1,44 @@
 -include .env
 export
 
-.PHONY: all build-agent run-agent build-app run-app clean test test-integration
+.PHONY: all build-server run-server build-desktop run-desktop clean test test-integration
 
 # Default target
-all: build-app
+all: build-desktop
 
-# Build the Go agent
-build-agent:
-	@echo "Building Go agent..."
-	cd packages/app && go build -o voice-agent cmd/voice-agent/main.go
+# Build the Go server
+build-server:
+	@echo "Building Go server..."
+	cd packages/server && ./build.sh
 
-# Run the Go agent independently (useful for debugging)
-run-agent:
-	@echo "Starting Go agent on :8080..."
-	cd packages/app && go run cmd/voice-agent/main.go
+# Run the Go server independently (useful for debugging)
+run-server: build-server
+	@echo "Starting Go server on :8080..."
+	cd build/server && ./server
 
-# Run unit tests for Go agent
+# Run unit tests for Go server
 test:
 	@echo "Running Go unit tests..."
-	cd packages/app && go test -v -race ./...
+	cd packages/server && go test -v -race ./...
 
 # Run integration tests (requires Ollama to be running locally)
 test-integration:
 	@echo "Running Go integration tests..."
-	cd packages/app && go test -v -tags=integration ./internal/agent/
+	cd packages/server && go test -v -tags=integration ./internal/agent/
 
-# Build the Swift macOS application (this also builds and bundles the Go agent)
-build-app:
-	@echo "Building macOS application..."
+# Build the Swift macOS application (requires the Go server to be built first)
+build-desktop: build-server
+	@echo "Building macOS desktop application..."
 	cd packages/desktop && ./build.sh
 
-# Run the Swift macOS application
-run-app: build-app
+# Run the Swift macOS desktop application
+run-desktop: build-desktop
 	@echo "Opening VoiceAgent..."
-	open packages/desktop/VoiceAgent.app
+	open build/VoiceAgent.app
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
-	rm -rf packages/desktop/VoiceAgent.app
-	rm -f packages/app/voice-agent
+	rm -rf build/
+	rm -f packages/server/voice-agent
 	@echo "Clean complete."

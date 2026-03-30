@@ -4,7 +4,7 @@ VoiceAgent is a macOS menu bar application that acts as a local, privacy-respect
 
 The project is structured into two main components:
 *   **Frontend (`packages/desktop`)**: A Swift-based macOS menu bar application handling the UI, hotkeys, and system permissions.
-*   **Backend (`packages/app`)**: A Go server bundled inside the macOS app that processes audio and communicates with Mistral's Speech-to-Text (STT) and Large Language Model (LLM) endpoints.
+*   **Backend (`packages/server`)**: A Go server bundled inside the macOS app that processes audio and communicates with Mistral's Speech-to-Text (STT) and Large Language Model (LLM) endpoints.
 
 ---
 
@@ -32,7 +32,7 @@ echo "MISTRAL_API_KEY=your_actual_api_key_here" > .env
 Use the provided `Makefile` to compile the Go backend and package the Swift frontend into a macOS `.app` bundle. The `Makefile` automatically reads your `.env` file.
 
 ```bash
-make build-app
+make build-desktop
 ```
 
 ### Step 3: Run VoiceAgent
@@ -40,7 +40,7 @@ make build-app
 Launch the compiled application using the `Makefile` command to ensure the environment variables are correctly inherited:
 
 ```bash
-make run-app
+make run-desktop
 ```
 
 On your first launch, macOS will prompt you for specific system permissions (Accessibility and Microphone).
