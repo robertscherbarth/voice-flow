@@ -32,7 +32,7 @@ build-desktop: build-server
 	cd packages/desktop && ./build.sh
 
 # Run the Swift macOS desktop application
-run-desktop: build-desktop
+run-desktop:
 	@echo "Opening VoiceAgent..."
 	open build/VoiceAgent.app
 
