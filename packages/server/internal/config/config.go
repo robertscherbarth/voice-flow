@@ -83,5 +83,7 @@ func loadSystemPrompt() string {
 		return defaultPrompt
 	}
 
+	log.Printf("Successfully loaded system prompt from %s", path)
+
 	return promptCfg.SystemPrompt
 }
