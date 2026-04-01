@@ -6,6 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"voice-agent/internal/config"
 )
@@ -17,6 +20,16 @@ type LLMClient interface {
 
 type STTClient interface {
 	TranscribeAudio(ctx context.Context, audioData []byte, filename string, modelName string) (string, error)
+}
+
+// EvalRecord represents a single evaluation request for quality assessment.
+type EvalRecord struct {
+	Timestamp    time.Time `json:"timestamp"`
+	STTModel     string    `json:"stt_model"`
+	LLMModel     string    `json:"llm_model"`
+	SystemPrompt string    `json:"system_prompt"`
+	Transcript   string    `json:"transcript"`
+	ImprovedText string    `json:"improved_text"`
 }
 
 // Handler handles agent HTTP requests.
@@ -103,6 +116,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("Improved Text: %s", improvedText)
+
+		// 3. Save evaluation data if in DevMode
+		if h.cfg.DevMode {
+			record := EvalRecord{
+				Timestamp:    time.Now(),
+				STTModel:     sttModel,
+				LLMModel:     llmModel,
+				SystemPrompt: systemPrompt,
+				Transcript:   transcript,
+				ImprovedText: improvedText,
+			}
+			h.saveEvalData(record)
+		}
 	} else {
 		log.Println("Transcript is empty, skipping LLM improvement.")
 	}
@@ -111,5 +137,32 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(map[string]string{"text": improvedText}); err != nil {
 		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+func (h *Handler) saveEvalData(record EvalRecord) {
+	data, err := json.Marshal(record)
+	if err != nil {
+		log.Printf("Error marshaling eval record: %v", err)
+		return
+	}
+
+	// Ensure parent directory exists
+	dir := filepath.Dir(h.cfg.EvalDataPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("Error creating eval data directory: %v", err)
+		return
+	}
+
+	// Append to file
+	f, err := os.OpenFile(h.cfg.EvalDataPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("Error opening eval data file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.Write(append(data, '\n')); err != nil {
+		log.Printf("Error writing to eval data file: %v", err)
 	}
 }

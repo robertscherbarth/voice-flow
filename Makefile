@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: all build-server run-server build-desktop run-desktop clean test test-integration
+.PHONY: all build-server run-server run-dev build-desktop run-desktop clean test test-integration
 
 # Default target
 all: build-desktop
@@ -15,6 +15,11 @@ build-server:
 run-server: build-server
 	@echo "Starting Go server on :8080..."
 	cd build/server && ./server
+
+# Run the Go server in development mode (saves evaluation data)
+run-dev: build-server
+	@echo "Starting Go server in DEV_MODE on :8080..."
+	DEV_MODE=true cd build/server && ./server
 
 # Run unit tests for Go server
 test:

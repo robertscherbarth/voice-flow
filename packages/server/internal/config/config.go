@@ -20,6 +20,8 @@ type Config struct {
 	STTModel     string
 	LLMModel     string
 	SystemPrompt string
+	DevMode      bool
+	EvalDataPath string
 }
 
 // New returns a new Config with default values and environment overrides.
@@ -36,6 +38,12 @@ func New() *Config {
 		llmModel = "mistral-small-latest"
 	}
 
+	devMode := os.Getenv("DEV_MODE") == "true"
+	evalDataPath := os.Getenv("EVAL_DATA_PATH")
+	if evalDataPath == "" {
+		evalDataPath = "test-data/evaluation_data.jsonl"
+	}
+
 	systemPrompt := loadSystemPrompt()
 
 	return &Config{
@@ -45,6 +53,8 @@ func New() *Config {
 		STTModel:     sttModel,
 		LLMModel:     llmModel,
 		SystemPrompt: systemPrompt,
+		DevMode:      devMode,
+		EvalDataPath: evalDataPath,
 	}
 }
 

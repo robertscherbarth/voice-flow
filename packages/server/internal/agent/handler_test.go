@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"voice-agent/internal/config"
@@ -99,6 +100,11 @@ func TestProcessHandler(t *testing.T) {
 			}
 
 			cfg := config.New()
+			// Manually override for testing evaluation save logic if desired
+			if tt.name == "successful processing" && os.Getenv("TEST_SAVE_EVAL") == "true" {
+				cfg.DevMode = true
+				cfg.EvalDataPath = "test-data/integration_test.jsonl"
+			}
 			handler := NewHandler(mockLLM, mockSTT, cfg)
 
 			var requestBody bytes.Buffer

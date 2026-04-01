@@ -43,6 +43,13 @@ Launch the compiled application using the `Makefile` command to ensure the envir
 make run-desktop
 ```
 
+For developers who want to evaluate the transcription quality and improve the system prompt, you can run the server in development mode to save all requests to a local JSONL file:
+
+```bash
+make run-dev
+```
+This will save raw transcripts and improved text to `packages/server/test-data/evaluation_data.jsonl` (this file is automatically ignored by Git).
+
 On your first launch, macOS will prompt you for specific system permissions (Accessibility and Microphone).
 
 ---

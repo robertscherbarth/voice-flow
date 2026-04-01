@@ -1,3 +1,7 @@
 .env
 .DS_Store
 build/
+
+# Evaluation data (Dev Mode)
+evaluation_data.jsonl
+**/evaluation_data.jsonl
