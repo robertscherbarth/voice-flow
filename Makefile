@@ -19,7 +19,7 @@ run-server: build-server
 # Run the Go server in development mode (saves evaluation data)
 run-dev: build-server
 	@echo "Starting Go server in DEV_MODE on :8080..."
-	DEV_MODE=true cd build/server && ./server
+	cd build/server && env DEV_MODE=true ./server
 
 # Run unit tests for Go server
 test:

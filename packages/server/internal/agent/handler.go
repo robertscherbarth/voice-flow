@@ -127,7 +127,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Transcript:   transcript,
 				ImprovedText: improvedText,
 			}
-			h.saveEvalData(record)
+			go h.saveEvalData(record)
 		}
 	} else {
 		log.Println("Transcript is empty, skipping LLM improvement.")
@@ -147,22 +147,31 @@ func (h *Handler) saveEvalData(record EvalRecord) {
 		return
 	}
 
+	// Use absolute path for reliability
+	absPath, err := filepath.Abs(h.cfg.EvalDataPath)
+	if err != nil {
+		log.Printf("Error getting absolute path for %s: %v", h.cfg.EvalDataPath, err)
+		absPath = h.cfg.EvalDataPath
+	}
+
 	// Ensure parent directory exists
-	dir := filepath.Dir(h.cfg.EvalDataPath)
+	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Printf("Error creating eval data directory: %v", err)
+		log.Printf("Error creating eval data directory %s: %v", dir, err)
 		return
 	}
 
 	// Append to file
-	f, err := os.OpenFile(h.cfg.EvalDataPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(absPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Printf("Error opening eval data file: %v", err)
+		log.Printf("Error opening eval data file %s: %v", absPath, err)
 		return
 	}
 	defer f.Close()
 
 	if _, err := f.Write(append(data, '\n')); err != nil {
-		log.Printf("Error writing to eval data file: %v", err)
+		log.Printf("Error writing to eval data file %s: %v", absPath, err)
+	} else {
+		log.Printf("Evaluation data saved to %s", absPath)
 	}
 }

@@ -147,8 +147,6 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 		return "", fmt.Errorf("mistral returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// log.Printf("Mistral LLM raw response: %s", string(bodyBytes))
-
 	var result struct {
 		Choices []struct {
 			Message struct {
