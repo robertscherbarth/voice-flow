@@ -37,7 +37,10 @@ func run() error {
 		if cfg.GeminiKey == "" {
 			log.Println("WARNING: GEMINI_API_KEY is not set. Transcription and LLM tasks will fail.")
 		}
-		geminiClient := gemini.NewClient(cfg.GeminiURL, cfg.GeminiKey)
+		geminiClient, err := gemini.NewClient(context.Background(), cfg.GeminiKey)
+		if err != nil {
+			return fmt.Errorf("create gemini client: %w", err)
+		}
 		llmClient = geminiClient
 		sttClient = geminiClient
 	case "mistral", "":
