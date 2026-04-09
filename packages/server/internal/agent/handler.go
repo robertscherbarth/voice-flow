@@ -61,21 +61,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sttModel := r.FormValue("stt_model")
-	// Fall back to the active provider's configured default for empty or legacy Ollama model names
-	if sttModel == "" || sttModel == "karanchopda333/whisper" || sttModel == "base" {
-		sttModel = h.cfg.STTModel
-	}
-
-	llmModel := r.FormValue("llm_model")
-	// Fall back to the active provider's configured default for empty or legacy model names
-	if llmModel == "" || llmModel == "mistral" {
-		llmModel = h.cfg.LLMModel
-	}
+	// Model selection is the server's responsibility based on the configured provider.
+	// The frontend does not send model names; we always use the active provider's defaults.
+	sttModel := h.cfg.STTModel
+	llmModel := h.cfg.LLMModel
 
 	systemPrompt := r.FormValue("system_prompt")
-	// If it's empty or the old prompt, use the new Mistral-tuned prompt
-	if systemPrompt == "" || systemPrompt == "You are an assistant that improves the grammar, structure, and clarity of spoken text. Return ONLY the improved text, without conversational filler or preambles." {
+	// Fall back to the server's configured system prompt if none provided
+	if systemPrompt == "" {
 		systemPrompt = h.cfg.SystemPrompt
 	}
 
