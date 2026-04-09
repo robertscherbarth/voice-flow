@@ -91,7 +91,7 @@ func New() *Config {
 		geminiSTTModel = v
 	}
 	if geminiSTTModel == "" {
-		geminiSTTModel = "gemini-3.0-flash"
+		geminiSTTModel = "gemini-3-flash"
 	}
 
 	geminiLLMModel := app.Gemini.LLMModel
@@ -99,7 +99,7 @@ func New() *Config {
 		geminiLLMModel = v
 	}
 	if geminiLLMModel == "" {
-		geminiLLMModel = "gemini-3.0-flash"
+		geminiLLMModel = "gemini-3-flash"
 	}
 
 	devMode := os.Getenv("DEV_MODE") == "true"

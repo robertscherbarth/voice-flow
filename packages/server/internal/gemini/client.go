@@ -125,7 +125,7 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 	}
 
 	if modelName == "" {
-		modelName = "gemini-3.0-flash"
+		modelName = "gemini-3-flash"
 	}
 
 	mimeType := audioMIMEType(filename)
@@ -165,7 +165,7 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	}
 
 	if modelName == "" {
-		modelName = "gemini-3.0-flash"
+		modelName = "gemini-3-flash"
 	}
 
 	reqBody := generateContentRequest{
