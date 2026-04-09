@@ -1,0 +1,11 @@
+provider: mistral # "mistral" (default) or "gemini". Override with PROVIDER env var.
+
+mistral:
+  api_url: "https://api.mistral.ai"
+  stt_model: "voxtral-mini-latest"
+  llm_model: "mistral-small-latest"
+
+gemini:
+  api_url: "https://generativelanguage.googleapis.com"
+  stt_model: "gemini-2.0-flash"
+  llm_model: "gemini-2.0-flash"

@@ -12,30 +12,94 @@ type PromptConfig struct {
 	SystemPrompt string `yaml:"system_prompt"`
 }
 
-// Config holds the application configuration.
-type Config struct {
-	Port         string
-	MistralURL   string
-	MistralKey   string
-	STTModel     string
-	LLMModel     string
-	SystemPrompt string
-	DevMode      bool
-	EvalDataPath string
+// appProviderConfig holds per-provider settings from config.yaml.
+type appProviderConfig struct {
+	APIURL   string `yaml:"api_url"`
+	STTModel string `yaml:"stt_model"`
+	LLMModel string `yaml:"llm_model"`
 }
 
-// New returns a new Config with default values and environment overrides.
+// appConfig is the top-level structure of config.yaml.
+type appConfig struct {
+	Provider string            `yaml:"provider"`
+	Mistral  appProviderConfig `yaml:"mistral"`
+	Gemini   appProviderConfig `yaml:"gemini"`
+}
+
+// Config holds the application configuration.
+type Config struct {
+	Port           string
+	Provider       string // "mistral" or "gemini"
+	MistralURL     string
+	MistralKey     string
+	STTModel       string
+	LLMModel       string
+	GeminiURL      string
+	GeminiKey      string
+	GeminiSTTModel string
+	GeminiLLMModel string
+	SystemPrompt   string
+	DevMode        bool
+	EvalDataPath   string
+}
+
+// New returns a new Config loaded from config.yaml with environment variable overrides.
 func New() *Config {
+	app := loadAppConfig()
+
+	// Provider: YAML default, then env override
+	provider := app.Provider
+	if p := os.Getenv("PROVIDER"); p != "" {
+		provider = p
+	}
+	if provider == "" {
+		provider = "mistral"
+	}
+
+	// Mistral settings: YAML → env override
+	mistralURL := app.Mistral.APIURL
+	if mistralURL == "" {
+		mistralURL = "https://api.mistral.ai"
+	}
 	mistralKey := os.Getenv("MISTRAL_API_KEY")
 
-	sttModel := os.Getenv("MISTRAL_STT_MODEL")
+	sttModel := app.Mistral.STTModel
+	if v := os.Getenv("MISTRAL_STT_MODEL"); v != "" {
+		sttModel = v
+	}
 	if sttModel == "" {
 		sttModel = "voxtral-mini-latest"
 	}
 
-	llmModel := os.Getenv("MISTRAL_LLM_MODEL")
+	llmModel := app.Mistral.LLMModel
+	if v := os.Getenv("MISTRAL_LLM_MODEL"); v != "" {
+		llmModel = v
+	}
 	if llmModel == "" {
 		llmModel = "mistral-small-latest"
+	}
+
+	// Gemini settings: YAML → env override
+	geminiURL := app.Gemini.APIURL
+	if geminiURL == "" {
+		geminiURL = "https://generativelanguage.googleapis.com"
+	}
+	geminiKey := os.Getenv("GEMINI_API_KEY")
+
+	geminiSTTModel := app.Gemini.STTModel
+	if v := os.Getenv("GEMINI_STT_MODEL"); v != "" {
+		geminiSTTModel = v
+	}
+	if geminiSTTModel == "" {
+		geminiSTTModel = "gemini-2.0-flash"
+	}
+
+	geminiLLMModel := app.Gemini.LLMModel
+	if v := os.Getenv("GEMINI_LLM_MODEL"); v != "" {
+		geminiLLMModel = v
+	}
+	if geminiLLMModel == "" {
+		geminiLLMModel = "gemini-2.0-flash"
 	}
 
 	devMode := os.Getenv("DEV_MODE") == "true"
@@ -46,16 +110,58 @@ func New() *Config {
 
 	systemPrompt := loadSystemPrompt()
 
-	return &Config{
-		Port:         "8080",
-		MistralURL:   "https://api.mistral.ai",
-		MistralKey:   mistralKey,
-		STTModel:     sttModel,
-		LLMModel:     llmModel,
-		SystemPrompt: systemPrompt,
-		DevMode:      devMode,
-		EvalDataPath: evalDataPath,
+	// STTModel and LLMModel are the active provider's model defaults used by the handler.
+	activeSSTModel := sttModel
+	activeLLMModel := llmModel
+	if provider == "gemini" {
+		activeSSTModel = geminiSTTModel
+		activeLLMModel = geminiLLMModel
 	}
+
+	return &Config{
+		Port:           "8080",
+		Provider:       provider,
+		MistralURL:     mistralURL,
+		MistralKey:     mistralKey,
+		STTModel:       activeSSTModel,
+		LLMModel:       activeLLMModel,
+		GeminiURL:      geminiURL,
+		GeminiKey:      geminiKey,
+		GeminiSTTModel: geminiSTTModel,
+		GeminiLLMModel: geminiLLMModel,
+		SystemPrompt:   systemPrompt,
+		DevMode:        devMode,
+		EvalDataPath:   evalDataPath,
+	}
+}
+
+// loadAppConfig reads config.yaml from one of several candidate paths and returns
+// the parsed appConfig. Missing or malformed files return an empty config (all fields
+// default to zero values; callers fall back to hardcoded defaults).
+func loadAppConfig() appConfig {
+	candidates := []string{
+		"config.yaml",
+		"../../config.yaml",
+		"../config.yaml",
+		"../../../config.yaml",
+	}
+
+	for _, p := range candidates {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		var cfg appConfig
+		if err := yaml.Unmarshal(data, &cfg); err != nil {
+			log.Printf("Warning: failed to parse %s: %v", p, err)
+			return appConfig{}
+		}
+		log.Printf("Loaded app config from %s", p)
+		return cfg
+	}
+
+	log.Printf("Warning: config.yaml not found, using built-in defaults")
+	return appConfig{}
 }
 
 // loadSystemPrompt reads the system prompt from prompt/optimize.yaml if it exists.
