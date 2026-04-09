@@ -62,13 +62,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sttModel := r.FormValue("stt_model")
-	// If the frontend sent the old Ollama model or nothing, use the Mistral default
+	// Fall back to the active provider's configured default for empty or legacy Ollama model names
 	if sttModel == "" || sttModel == "karanchopda333/whisper" || sttModel == "base" {
 		sttModel = h.cfg.STTModel
 	}
 
 	llmModel := r.FormValue("llm_model")
-	// Use the configured Mistral default if not provided
+	// Fall back to the active provider's configured default for empty or legacy model names
 	if llmModel == "" || llmModel == "mistral" {
 		llmModel = h.cfg.LLMModel
 	}

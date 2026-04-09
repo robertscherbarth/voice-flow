@@ -17,15 +17,27 @@ This tutorial will guide you through setting up your environment, building the a
 Ensure you have the following installed on your macOS system:
 *   **Go** (for compiling the backend)
 *   **Xcode Command Line Tools** (for packaging the Swift application)
-*   **Mistral API Key** (for transcription and text processing)
+*   **API Key** for your chosen provider (Mistral or Gemini)
 
 ### Step 1: Configure Your Environment
 
-VoiceAgent uses a `.env` file to manage secrets. Create a `.env` file in the root directory of the project and add your Mistral API key:
+VoiceAgent uses a `.env` file for secrets and `packages/server/config.yaml` to select the active provider.
+
+**Default (Mistral):** Add your Mistral API key to `.env`:
 
 ```bash
-echo "MISTRAL_API_KEY=your_actual_api_key_here" > .env
+echo "MISTRAL_API_KEY=your_mistral_api_key_here" > .env
 ```
+
+**Gemini:** Add your Gemini API key to `.env` and set `PROVIDER`:
+
+```bash
+echo "MISTRAL_API_KEY=" > .env
+echo "GEMINI_API_KEY=your_gemini_api_key_here" >> .env
+echo "PROVIDER=gemini" >> .env
+```
+
+Alternatively, set `provider: gemini` in `packages/server/config.yaml` without needing an env override.
 
 ### Step 2: Build the Application
 

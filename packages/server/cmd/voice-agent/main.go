@@ -12,6 +12,7 @@ import (
 
 	"voice-agent/internal/agent"
 	"voice-agent/internal/config"
+	"voice-agent/internal/gemini"
 	"voice-agent/internal/mistral"
 )
 
@@ -25,15 +26,33 @@ func run() error {
 	// Initialize configuration
 	cfg := config.New()
 
-	if cfg.MistralKey == "" {
-		log.Println("WARNING: MISTRAL_API_KEY is not set. Transcription and LLM tasks will fail.")
+	log.Printf("Starting with provider: %s", cfg.Provider)
+
+	// Initialize the provider client for both STT and LLM based on config
+	var llmClient agent.LLMClient
+	var sttClient agent.STTClient
+
+	switch cfg.Provider {
+	case "gemini":
+		if cfg.GeminiKey == "" {
+			log.Println("WARNING: GEMINI_API_KEY is not set. Transcription and LLM tasks will fail.")
+		}
+		geminiClient := gemini.NewClient(cfg.GeminiURL, cfg.GeminiKey)
+		llmClient = geminiClient
+		sttClient = geminiClient
+	case "mistral", "":
+		if cfg.MistralKey == "" {
+			log.Println("WARNING: MISTRAL_API_KEY is not set. Transcription and LLM tasks will fail.")
+		}
+		mistralClient := mistral.NewClient(cfg.MistralURL, cfg.MistralKey)
+		llmClient = mistralClient
+		sttClient = mistralClient
+	default:
+		return fmt.Errorf("unknown provider %q: must be \"mistral\" or \"gemini\"", cfg.Provider)
 	}
 
-	// Initialize Mistral client for both STT and LLM
-	mistralClient := mistral.NewClient(cfg.MistralURL, cfg.MistralKey)
-
 	// Initialize agent handler
-	handler := agent.NewHandler(mistralClient, mistralClient, cfg)
+	handler := agent.NewHandler(llmClient, sttClient, cfg)
 
 	// Configure routing
 	mux := http.NewServeMux()
