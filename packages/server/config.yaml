@@ -7,5 +7,5 @@ mistral:
 
 gemini:
   api_url: "https://generativelanguage.googleapis.com"
-  stt_model: "gemini-3-flash"
-  llm_model: "gemini-3-flash"
+  stt_model: "gemini-3.1-flash"
+  llm_model: "gemini-3.1-flash"

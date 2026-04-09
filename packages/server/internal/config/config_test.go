@@ -41,11 +41,11 @@ func TestNew_MistralDefaults(t *testing.T) {
 func TestNew_GeminiDefaults(t *testing.T) {
 	cfg := New()
 
-	if cfg.GeminiSTTModel != "gemini-3-flash" {
-		t.Errorf("expected GeminiSTTModel gemini-3-flash, got %s", cfg.GeminiSTTModel)
+	if cfg.GeminiSTTModel != "gemini-3.1-flash" {
+		t.Errorf("expected GeminiSTTModel gemini-3.1-flash, got %s", cfg.GeminiSTTModel)
 	}
-	if cfg.GeminiLLMModel != "gemini-3-flash" {
-		t.Errorf("expected GeminiLLMModel gemini-3-flash, got %s", cfg.GeminiLLMModel)
+	if cfg.GeminiLLMModel != "gemini-3.1-flash" {
+		t.Errorf("expected GeminiLLMModel gemini-3.1-flash, got %s", cfg.GeminiLLMModel)
 	}
 }
 
