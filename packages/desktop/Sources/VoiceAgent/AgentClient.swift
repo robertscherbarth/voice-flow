@@ -7,7 +7,7 @@ class AgentClient {
         let text: String
     }
     
-    func processAudio(fileURL: URL, sttModel: String, llmModel: String, systemPrompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func processAudio(fileURL: URL, systemPrompt: String, completion: @escaping (Result<String, Error>) -> Void) {
         var request = URLRequest(url: URL(string: baseURL)!)
         request.httpMethod = "POST"
         
@@ -16,10 +16,8 @@ class AgentClient {
         
         var body = Data()
         
-        // Add text fields
+        // Add text fields — model selection is the server's responsibility
         let fields = [
-            "stt_model": sttModel,
-            "llm_model": llmModel,
             "system_prompt": systemPrompt
         ]
         

@@ -93,7 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let prefs = Preferences.shared
-        agentClient.processAudio(fileURL: url, sttModel: prefs.sttModel, llmModel: prefs.llmModel, systemPrompt: prefs.systemPrompt) { [weak self] result in
+        agentClient.processAudio(fileURL: url, systemPrompt: prefs.systemPrompt) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.updateIcon("⚪️") // Back to idle
