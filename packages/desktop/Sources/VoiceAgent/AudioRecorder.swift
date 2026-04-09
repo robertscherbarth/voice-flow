@@ -4,6 +4,7 @@ import AVFoundation
 class AudioRecorder: NSObject, AVAudioRecorderDelegate {
     var audioRecorder: AVAudioRecorder?
     let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("recording.wav")
+    var startTime: Date?
 
     func requestPermission(completion: @escaping (Bool) -> Void) {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
@@ -36,6 +37,7 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
             audioRecorder = try AVAudioRecorder(url: tempURL, settings: settings)
             audioRecorder?.delegate = self
             audioRecorder?.record()
+            startTime = Date()
             print("Recording started at \(tempURL.path)")
         } catch {
             print("Failed to start recording: \(error.localizedDescription)")
@@ -45,6 +47,12 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
     func stopRecording() -> URL? {
         audioRecorder?.stop()
         print("Recording stopped")
+        
+        if let start = startTime, Date().timeIntervalSince(start) < 0.3 {
+            print("Recording too short, discarding")
+            return nil
+        }
+        
         return tempURL
     }
 }

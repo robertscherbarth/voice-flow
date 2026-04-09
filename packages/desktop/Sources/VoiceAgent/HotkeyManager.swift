@@ -3,6 +3,8 @@ import Cocoa
 class HotkeyManager {
     var monitor: Any?
     var isRecording = false
+    var isPermanentMode = false
+    var lastFnPressTime: Date?
     var onRecordingStart: (() -> Void)?
     var onRecordingStop: (() -> Void)?
 
@@ -21,13 +23,40 @@ class HotkeyManager {
             let fnKeyPressed = event.modifierFlags.contains(.function)
             let otherModifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
             
-            if fnKeyPressed && otherModifiers.isEmpty {
-                if !self.isRecording {
-                    self.isRecording = true
-                    self.onRecordingStart?()
+            guard otherModifiers.isEmpty else {
+                if self.isRecording && !self.isPermanentMode {
+                    self.isRecording = false
+                    self.onRecordingStop?()
+                }
+                return
+            }
+            
+            if fnKeyPressed {
+                let now = Date()
+                if let lastPress = self.lastFnPressTime, now.timeIntervalSince(lastPress) < 0.4 {
+                    self.isPermanentMode.toggle()
+                    self.lastFnPressTime = nil
+                    
+                    if self.isPermanentMode {
+                        if !self.isRecording {
+                            self.isRecording = true
+                            self.onRecordingStart?()
+                        }
+                    } else {
+                        if self.isRecording {
+                            self.isRecording = false
+                            self.onRecordingStop?()
+                        }
+                    }
+                } else {
+                    self.lastFnPressTime = now
+                    if !self.isRecording && !self.isPermanentMode {
+                        self.isRecording = true
+                        self.onRecordingStart?()
+                    }
                 }
             } else {
-                if self.isRecording {
+                if self.isRecording && !self.isPermanentMode {
                     self.isRecording = false
                     self.onRecordingStop?()
                 }
