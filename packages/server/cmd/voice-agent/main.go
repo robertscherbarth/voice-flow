@@ -13,6 +13,7 @@ import (
 	"voice-agent/internal/agent"
 	"voice-agent/internal/config"
 	"voice-agent/internal/gemini"
+	"voice-agent/internal/lmstudio"
 	"voice-agent/internal/mistral"
 )
 
@@ -43,6 +44,14 @@ func run() error {
 		}
 		llmClient = geminiClient
 		sttClient = geminiClient
+	case "local":
+		// Hybrid: Mistral handles STT (cloud), LM Studio handles text improvement (local).
+		if cfg.MistralKey == "" {
+			log.Println("WARNING: MISTRAL_API_KEY is not set. Transcription (STT) will fail.")
+		}
+		log.Printf("LM Studio URL: %s, model: %s", cfg.LMStudioURL, cfg.LMStudioModel)
+		sttClient = mistral.NewClient(cfg.MistralURL, cfg.MistralKey)
+		llmClient = lmstudio.NewClient(cfg.LMStudioURL)
 	case "mistral", "":
 		if cfg.MistralKey == "" {
 			log.Println("WARNING: MISTRAL_API_KEY is not set. Transcription and LLM tasks will fail.")
@@ -51,7 +60,7 @@ func run() error {
 		llmClient = mistralClient
 		sttClient = mistralClient
 	default:
-		return fmt.Errorf("unknown provider %q: must be \"mistral\" or \"gemini\"", cfg.Provider)
+		return fmt.Errorf("unknown provider %q: must be \"mistral\", \"gemini\", or \"local\"", cfg.Provider)
 	}
 
 	// Initialize agent handler

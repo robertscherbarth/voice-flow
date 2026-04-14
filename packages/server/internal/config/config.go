@@ -19,17 +19,25 @@ type appProviderConfig struct {
 	LLMModel string `yaml:"llm_model"`
 }
 
+// appLMStudioConfig holds LM Studio-specific settings from config.yaml.
+// LM Studio does not serve STT — it only provides the LLM role.
+type appLMStudioConfig struct {
+	APIURL   string `yaml:"api_url"`
+	LLMModel string `yaml:"llm_model"`
+}
+
 // appConfig is the top-level structure of config.yaml.
 type appConfig struct {
 	Provider string            `yaml:"provider"`
 	Mistral  appProviderConfig `yaml:"mistral"`
 	Gemini   appProviderConfig `yaml:"gemini"`
+	LMStudio appLMStudioConfig `yaml:"lmstudio"`
 }
 
 // Config holds the application configuration.
 type Config struct {
 	Port           string
-	Provider       string // "mistral" or "gemini"
+	Provider       string // "mistral", "gemini", or "local"
 	MistralURL     string
 	MistralKey     string
 	STTModel       string
@@ -38,6 +46,8 @@ type Config struct {
 	GeminiKey      string
 	GeminiSTTModel string
 	GeminiLLMModel string
+	LMStudioURL    string
+	LMStudioModel  string
 	SystemPrompt   string
 	DevMode        bool
 	EvalDataPath   string
@@ -63,20 +73,20 @@ func New() *Config {
 	}
 	mistralKey := os.Getenv("MISTRAL_API_KEY")
 
-	sttModel := app.Mistral.STTModel
+	mistralSTTModel := app.Mistral.STTModel
 	if v := os.Getenv("MISTRAL_STT_MODEL"); v != "" {
-		sttModel = v
+		mistralSTTModel = v
 	}
-	if sttModel == "" {
-		sttModel = "voxtral-mini-latest"
+	if mistralSTTModel == "" {
+		mistralSTTModel = "voxtral-mini-latest"
 	}
 
-	llmModel := app.Mistral.LLMModel
+	mistralLLMModel := app.Mistral.LLMModel
 	if v := os.Getenv("MISTRAL_LLM_MODEL"); v != "" {
-		llmModel = v
+		mistralLLMModel = v
 	}
-	if llmModel == "" {
-		llmModel = "mistral-small-latest"
+	if mistralLLMModel == "" {
+		mistralLLMModel = "mistral-small-latest"
 	}
 
 	// Gemini settings: YAML → env override
@@ -102,6 +112,24 @@ func New() *Config {
 		geminiLLMModel = "gemini-3-flash-preview"
 	}
 
+	// LM Studio settings: YAML → env override.
+	// LM Studio exposes an OpenAI-compatible API, so the base URL must end with /v1.
+	lmStudioURL := app.LMStudio.APIURL
+	if v := os.Getenv("LMSTUDIO_URL"); v != "" {
+		lmStudioURL = v
+	}
+	if lmStudioURL == "" {
+		lmStudioURL = "http://localhost:1234/v1"
+	}
+
+	lmStudioModel := app.LMStudio.LLMModel
+	if v := os.Getenv("LMSTUDIO_MODEL"); v != "" {
+		lmStudioModel = v
+	}
+	if lmStudioModel == "" {
+		lmStudioModel = "google/gemma-4-26b-a4b"
+	}
+
 	devMode := os.Getenv("DEV_MODE") == "true"
 	evalDataPath := os.Getenv("EVAL_DATA_PATH")
 	if evalDataPath == "" {
@@ -110,12 +138,19 @@ func New() *Config {
 
 	systemPrompt := loadSystemPrompt()
 
-	// STTModel and LLMModel are the active provider's model defaults used by the handler.
-	activeSSTModel := sttModel
-	activeLLMModel := llmModel
-	if provider == "gemini" {
-		activeSSTModel = geminiSTTModel
+	// STTModel and LLMModel are the active-provider model names used by the handler.
+	// For "local": STT stays on Mistral, LLM moves to LM Studio.
+	var activeSTTModel, activeLLMModel string
+	switch provider {
+	case "gemini":
+		activeSTTModel = geminiSTTModel
 		activeLLMModel = geminiLLMModel
+	case "local":
+		activeSTTModel = mistralSTTModel // Mistral handles STT
+		activeLLMModel = lmStudioModel   // LM Studio handles text improvement
+	default: // "mistral"
+		activeSTTModel = mistralSTTModel
+		activeLLMModel = mistralLLMModel
 	}
 
 	return &Config{
@@ -123,12 +158,14 @@ func New() *Config {
 		Provider:       provider,
 		MistralURL:     mistralURL,
 		MistralKey:     mistralKey,
-		STTModel:       activeSSTModel,
+		STTModel:       activeSTTModel,
 		LLMModel:       activeLLMModel,
 		GeminiURL:      geminiURL,
 		GeminiKey:      geminiKey,
 		GeminiSTTModel: geminiSTTModel,
 		GeminiLLMModel: geminiLLMModel,
+		LMStudioURL:    lmStudioURL,
+		LMStudioModel:  lmStudioModel,
 		SystemPrompt:   systemPrompt,
 		DevMode:        devMode,
 		EvalDataPath:   evalDataPath,

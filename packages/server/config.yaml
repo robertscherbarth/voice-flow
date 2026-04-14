@@ -1,4 +1,5 @@
-provider: mistral # "mistral" (default) or "gemini". Override with PROVIDER env var.
+provider: local # "mistral", "gemini", or "local". Override with PROVIDER env var.
+                # "local" uses Mistral for STT and LM Studio for text improvement.
 
 mistral:
   api_url: "https://api.mistral.ai"
@@ -9,3 +10,7 @@ gemini:
   api_url: "https://generativelanguage.googleapis.com"
   stt_model: "gemini-3-flash-preview"
   llm_model: "gemini-3-flash-preview"
+
+lmstudio:
+  api_url: "http://localhost:1234/v1" # Override with LMSTUDIO_URL env var.
+  llm_model: "google/gemma-4-26b-a4b" # Override with LMSTUDIO_MODEL env var.
