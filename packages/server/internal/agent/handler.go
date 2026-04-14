@@ -90,24 +90,28 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Send audioData to STT model
 	log.Println("Transcribing audio...")
+	sttStart := time.Now()
 	transcript, err := h.sttClient.TranscribeAudio(r.Context(), audioData, header.Filename, sttModel)
 	if err != nil {
 		log.Printf("STT Error: %v", err)
 		http.Error(w, "Failed to transcribe audio", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("STT latency: %v", time.Since(sttStart))
 	log.Printf("Raw Transcript: %s", transcript)
 
 	var improvedText string
 	if transcript != "" {
 		// 2. Send transcript to LLM model with systemPrompt
 		log.Println("Improving text...")
+		llmStart := time.Now()
 		improvedText, err = h.llmClient.ImproveText(r.Context(), transcript, llmModel, systemPrompt)
 		if err != nil {
 			log.Printf("LLM Error: %v", err)
 			http.Error(w, "Failed to improve text", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("LLM latency: %v", time.Since(llmStart))
 		log.Printf("Improved Text: %s", improvedText)
 
 		// 3. Save evaluation data if in DevMode

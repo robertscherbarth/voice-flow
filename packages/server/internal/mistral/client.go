@@ -76,6 +76,7 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
+	sttStart := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("stt request failed: %w", err)
@@ -91,6 +92,7 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 		return "", fmt.Errorf("mistral returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
+	log.Printf("Mistral STT latency: %v", time.Since(sttStart))
 	log.Printf("Mistral STT raw response: %s", string(bodyBytes))
 
 	var result struct {
@@ -132,6 +134,7 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
+	llmStart := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("llm request failed: %w", err)
@@ -146,6 +149,8 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("mistral returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
+
+	log.Printf("Mistral LLM latency: %v", time.Since(llmStart))
 
 	var result struct {
 		Choices []struct {

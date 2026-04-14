@@ -60,6 +60,7 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 
 	log.Printf("LM Studio request: model=%s url=%s", modelName, url)
 
+	llmStart := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("lm studio request failed: %w", err)
@@ -74,6 +75,8 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("lm studio returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
+
+	log.Printf("LM Studio LLM latency: %v", time.Since(llmStart))
 
 	var result struct {
 		Choices []struct {

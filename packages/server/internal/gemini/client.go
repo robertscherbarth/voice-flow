@@ -53,10 +53,12 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 		DisplayName: filename,
 	}
 
+	uploadStart := time.Now()
 	file, err := c.client.Files.Upload(ctx, bytes.NewReader(audioData), uploadConfig)
 	if err != nil {
 		return "", fmt.Errorf("upload audio file: %w", err)
 	}
+	log.Printf("Gemini STT upload latency: %v", time.Since(uploadStart))
 
 	// Ensure the file is deleted from Google's servers after processing (best effort)
 	defer func() {
@@ -88,10 +90,12 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 		},
 	}
 
+	generateStart := time.Now()
 	resp, err := c.client.Models.GenerateContent(ctx, modelName, contents, nil)
 	if err != nil {
 		return "", fmt.Errorf("generate transcription: %w", err)
 	}
+	log.Printf("Gemini STT generate latency: %v", time.Since(generateStart))
 
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return "", fmt.Errorf("empty response from Gemini")
@@ -125,10 +129,12 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 		},
 	}
 
+	llmStart := time.Now()
 	resp, err := c.client.Models.GenerateContent(ctx, modelName, contents, config)
 	if err != nil {
 		return "", fmt.Errorf("improve text: %w", err)
 	}
+	log.Printf("Gemini LLM latency: %v", time.Since(llmStart))
 
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return "", fmt.Errorf("empty response from Gemini")
