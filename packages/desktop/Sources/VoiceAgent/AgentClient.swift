@@ -15,19 +15,13 @@ class AgentClient {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var body = Data()
-        
-        // Add text fields — model selection is the server's responsibility
-        let fields = [
-            "system_prompt": systemPrompt
-        ]
-        
+        let fields = ["system_prompt": systemPrompt]
         for (key, value) in fields {
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".data(using: .utf8)!)
             body.append("\(value)\r\n".data(using: .utf8)!)
         }
         
-        // Add audio file
         if let audioData = try? Data(contentsOf: fileURL) {
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"audio\"; filename=\"recording.wav\"\r\n".data(using: .utf8)!)
@@ -35,7 +29,6 @@ class AgentClient {
             body.append(audioData)
             body.append("\r\n".data(using: .utf8)!)
         }
-        
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
         
@@ -50,11 +43,20 @@ class AgentClient {
                 return
             }
             
-            do {
-                let res = try JSONDecoder().decode(ProcessResponse.self, from: data)
-                completion(.success(res.text))
-            } catch {
-                completion(.failure(error))
+            // Check if it's SSE or JSON
+            if let str = String(data: data, encoding: .utf8), str.hasPrefix("data: ") {
+                let text = str.components(separatedBy: "\n")
+                    .filter { $0.hasPrefix("data: ") }
+                    .map { $0.dropFirst(6).trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .joined()
+                completion(.success(text))
+            } else {
+                do {
+                    let res = try JSONDecoder().decode(ProcessResponse.self, from: data)
+                    completion(.success(res.text))
+                } catch {
+                    completion(.failure(error))
+                }
             }
         }
         task.resume()
