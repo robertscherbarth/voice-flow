@@ -14,6 +14,7 @@ import (
 // Client defines the interface for communicating with an LM Studio LLM.
 type Client interface {
 	ImproveText(ctx context.Context, transcript, modelName, systemPrompt string) (string, error)
+	ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error
 }
 
 // clientImpl is the concrete implementation of the LM Studio Client.
@@ -45,6 +46,9 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 			{"role": "user", "content": transcript},
 		},
 		"temperature": 0.2, // low temperature for consistent text improvement
+		"thinking": map[string]string{
+			"type": "disabled", // disable chain-of-thought to avoid long latency
+		},
 	}
 
 	requestBody, err := json.Marshal(payload)
@@ -94,4 +98,14 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	}
 
 	return result.Choices[0].Message.Content, nil
+}
+
+// ImproveTextStream is a placeholder that calls ImproveText in a single chunk for now.
+func (c *clientImpl) ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error {
+	text, err := c.ImproveText(ctx, transcript, modelName, systemPrompt)
+	if err != nil {
+		return err
+	}
+	onChunk(text)
+	return nil
 }

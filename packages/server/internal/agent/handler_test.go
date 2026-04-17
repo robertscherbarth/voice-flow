@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -16,7 +15,8 @@ import (
 
 // mockLLMClient implements LLMClient for testing
 type mockLLMClient struct {
-	improveTextFunc func(ctx context.Context, transcript, modelName, systemPrompt string) (string, error)
+	improveTextFunc       func(ctx context.Context, transcript, modelName, systemPrompt string) (string, error)
+	improveTextStreamFunc func(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error
 }
 
 func (m *mockLLMClient) ImproveText(ctx context.Context, transcript, modelName, systemPrompt string) (string, error) {
@@ -24,6 +24,18 @@ func (m *mockLLMClient) ImproveText(ctx context.Context, transcript, modelName, 
 		return m.improveTextFunc(ctx, transcript, modelName, systemPrompt)
 	}
 	return "Mock improved text.", nil
+}
+
+func (m *mockLLMClient) ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error {
+	if m.improveTextStreamFunc != nil {
+		return m.improveTextStreamFunc(ctx, transcript, modelName, systemPrompt, onChunk)
+	}
+	text, err := m.ImproveText(ctx, transcript, modelName, systemPrompt)
+	if err != nil {
+		return err
+	}
+	onChunk(text)
+	return nil
 }
 
 // mockSTTClient implements STTClient for testing
@@ -75,7 +87,7 @@ func TestProcessHandler(t *testing.T) {
 			name:           "llm failure",
 			method:         http.MethodPost,
 			llmError:       errors.New("llm failure"),
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusOK, // Status remains 200 after stream starts
 		},
 	}
 
@@ -135,12 +147,18 @@ func TestProcessHandler(t *testing.T) {
 			}
 
 			if rr.Code == http.StatusOK {
-				var resp map[string]string
-				if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-					t.Fatalf("failed to decode response: %v", err)
-				}
-				if resp["text"] != tt.expectedText {
-					t.Errorf("expected text %q, got %q", tt.expectedText, resp["text"])
+				// For SSE, we check the body content
+				body := rr.Body.String()
+				if tt.llmError != nil {
+					expectedData := "event: error\ndata: " + tt.llmError.Error() + "\n\n"
+					if body != expectedData {
+						t.Errorf("expected body %q, got %q", expectedData, body)
+					}
+				} else {
+					expectedData := "data: " + tt.expectedText + "\n\n"
+					if body != expectedData {
+						t.Errorf("expected body %q, got %q", expectedData, body)
+					}
 				}
 			}
 		})

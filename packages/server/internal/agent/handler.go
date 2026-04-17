@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 // Define interfaces locally to decouple from specific providers
 type LLMClient interface {
 	ImproveText(ctx context.Context, transcript, modelName, systemPrompt string) (string, error)
+	ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error
 }
 
 type STTClient interface {
@@ -102,16 +104,36 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var improvedText string
 	if transcript != "" {
-		// 2. Send transcript to LLM model with systemPrompt
+		// 2. Send transcript to LLM model with systemPrompt using streaming
 		log.Println("Improving text...")
 		llmStart := time.Now()
-		improvedText, err = h.llmClient.ImproveText(r.Context(), transcript, llmModel, systemPrompt)
+
+		// Set headers for streaming
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		var fullImprovedText string
+		err = h.llmClient.ImproveTextStream(r.Context(), transcript, llmModel, systemPrompt, func(chunk string) {
+			fullImprovedText += chunk
+			// Write chunk as SSE
+			fmt.Fprintf(w, "data: %s\n\n", chunk)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		})
+
 		if err != nil {
-			log.Printf("LLM Error: %v", err)
-			http.Error(w, "Failed to improve text", http.StatusInternalServerError)
+			log.Printf("LLM Streaming Error: %v", err)
+			// Since we've already started the stream, we can't http.Error.
+			// We can send an error event if the frontend expects it.
+			fmt.Fprintf(w, "event: error\ndata: %v\n\n", err)
 			return
 		}
-		log.Printf("LLM latency: %v", time.Since(llmStart))
+
+		improvedText = fullImprovedText
+		log.Printf("LLM latency (full stream): %v", time.Since(llmStart))
 		log.Printf("Improved Text: %s", improvedText)
 
 		// 3. Save evaluation data if in DevMode
@@ -128,12 +150,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		log.Println("Transcript is empty, skipping LLM improvement.")
-	}
-
-	// Return the final text as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"text": improvedText}); err != nil {
-		log.Printf("Error encoding response: %v", err)
+		// Return empty JSON if we didn't start a stream
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"text": ""})
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 type Client interface {
 	TranscribeAudio(ctx context.Context, audioData []byte, filename string, modelName string) (string, error)
 	ImproveText(ctx context.Context, transcript, modelName, systemPrompt string) (string, error)
+	ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error
 }
 
 // clientImpl is the concrete implementation of the Mistral Client.
@@ -168,4 +169,14 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 	}
 
 	return result.Choices[0].Message.Content, nil
+}
+
+// ImproveTextStream is a placeholder that calls ImproveText in a single chunk for now.
+func (c *clientImpl) ImproveTextStream(ctx context.Context, transcript, modelName, systemPrompt string, onChunk func(string)) error {
+	text, err := c.ImproveText(ctx, transcript, modelName, systemPrompt)
+	if err != nil {
+		return err
+	}
+	onChunk(text)
+	return nil
 }
