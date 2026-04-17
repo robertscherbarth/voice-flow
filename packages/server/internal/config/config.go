@@ -101,7 +101,7 @@ func New() *Config {
 		geminiSTTModel = v
 	}
 	if geminiSTTModel == "" {
-		geminiSTTModel = "gemini-2.0-flash"
+		geminiSTTModel = "gemini-2.5-flash-lite"
 	}
 
 	geminiLLMModel := app.Gemini.LLMModel
@@ -109,7 +109,7 @@ func New() *Config {
 		geminiLLMModel = v
 	}
 	if geminiLLMModel == "" {
-		geminiLLMModel = "gemini-2.0-flash"
+		geminiLLMModel = "gemini-2.5-flash-lite"
 	}
 
 	// LM Studio settings: YAML → env override.

@@ -43,7 +43,7 @@ func (c *clientImpl) TranscribeAudio(ctx context.Context, audioData []byte, file
 		return "", fmt.Errorf("genai client not initialized")
 	}
 	if modelName == "" {
-		modelName = "gemini-2.0-flash"
+		modelName = "gemini-2.5-flash-lite"
 	}
 
 	// 1. Prepare transcription prompt
@@ -87,14 +87,15 @@ func (c *clientImpl) ImproveText(ctx context.Context, transcript, modelName, sys
 		return "", fmt.Errorf("genai client not initialized")
 	}
 	if modelName == "" {
-		modelName = "gemini-2.0-flash"
+		modelName = "gemini-2.5-flash-lite"
 	}
 
 	config := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: systemPrompt}},
 		},
-		Temperature: ptr(float32(1)),
+		Temperature:    ptr(float32(1)),
+		ThinkingConfig: &genai.ThinkingConfig{IncludeThoughts: false},
 	}
 
 	contents := []*genai.Content{
@@ -124,14 +125,15 @@ func (c *clientImpl) ImproveTextStream(ctx context.Context, transcript, modelNam
 		return fmt.Errorf("genai client not initialized")
 	}
 	if modelName == "" {
-		modelName = "gemini-2.0-flash"
+		modelName = "gemini-2.5-flash-lite"
 	}
 
 	config := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: systemPrompt}},
 		},
-		Temperature: ptr(float32(1)),
+		Temperature:    ptr(float32(1)),
+		ThinkingConfig: &genai.ThinkingConfig{IncludeThoughts: false},
 	}
 
 	contents := []*genai.Content{
